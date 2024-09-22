@@ -1,4 +1,5 @@
-﻿using DAL.Entities;
+﻿using BLL.DTO;
+using DAL.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,10 +10,10 @@ namespace BLL.StoreService
 {
     public interface IStoreService
     {
-        Task<IEnumerable<Store>> GetStores();
-        Task<Store> GetStore(string id);
-        Task<bool> UpdateStore(string id, Store store);
-        Task<bool> CreateStore(Store store);
+        Task<IEnumerable<StoreDTO>> GetStores();
+        Task<StoreDTO> GetStore(string id);
+        Task<bool> UpdateStore(string id, StoreDTO storeDto);
+        Task<bool> CreateStore(StoreDTO storeDTO);
         Task<bool> DeleteStore(string id);
         bool StoreExists(string id);
     }

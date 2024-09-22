@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using DAL;
 using DAL.Entities;
 using BLL.StoreService;
+using BLL.DTO;
+using BasicCRUD.InputForms.Store;
 
 namespace BasicCRUD.Controllers
 {
@@ -41,14 +43,23 @@ namespace BasicCRUD.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutStore(string id, Store store)
+        public async Task<IActionResult> PutStore(string id, StoreForm2 storeForm)
         {
-            if (id != store.StorId)
+            if (!_storeService.StoreExists(id))
             {
                 return BadRequest();
             }
 
-            if (await _storeService.UpdateStore(id, store))
+            var storeDto = new StoreDTO
+            {
+                StorName = storeForm.StorName,
+                StorAddress = storeForm.StorAddress,
+                City = storeForm.City,
+                State = storeForm.State,
+                Zip = storeForm.Zip
+            };
+
+            if (await _storeService.UpdateStore(id, storeDto))
             {
                 return NoContent();
             }
@@ -59,19 +70,36 @@ namespace BasicCRUD.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<Store>> PostStore(Store store)
+        public async Task<ActionResult<StoreDTO>> PostStore([FromBody] StoreForm storeForm)
         {
-            if (await _storeService.CreateStore(store))
+            if (storeForm == null)
             {
-                return CreatedAtAction("GetStore", new { id = store.StorId }, store);
-            }
-            else if (_storeService.StoreExists(store.StorId))
-            {
-                return Conflict();
+                return BadRequest("Store's data is null");
             }
 
-            return BadRequest();
+            if (_storeService.StoreExists(storeForm.StorId))
+            {
+                return Conflict("Store with the same ID already exists");
+            }
+
+            var store = new StoreDTO
+            {
+                StorId = storeForm.StorId,
+                StorName = storeForm.StorName,
+                StorAddress = storeForm.StorAddress,
+                City = storeForm.City,
+                State = storeForm.State,
+                Zip = storeForm.Zip
+            };
+
+            if (await _storeService.CreateStore(store))
+            {
+                return CreatedAtAction(nameof(GetStore), new { id = store.StorId }, storeForm);
+            }
+
+            return BadRequest("An error occurred while creating the store.");
         }
+
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteStore(string id)

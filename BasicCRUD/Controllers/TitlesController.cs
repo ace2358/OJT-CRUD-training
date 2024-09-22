@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using DAL;
 using DAL.Entities;
 using BLL.TitleService;
+using BasicCRUD.InputForms.Title;
+using BLL.DTO;
 
 namespace BasicCRUD.Controllers
 {
@@ -41,36 +43,72 @@ namespace BasicCRUD.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutTitle(string id, Title title)
+        public async Task<IActionResult> PutTitle(string id, TitleForm titleForm)
         {
-            if (id != title.TitleId)
-            {
-                return BadRequest();
-            }
-
-            if (await _titleService.UpdateTitle(id, title))
-            {
-                return NoContent();
-            }
-            else
+            if (!_titleService.TitleExists(id))
             {
                 return NotFound();
             }
+
+            var pubDate = new DateTime(titleForm.PubYear, titleForm.PubMonth, titleForm.PubDay);
+
+            var titleDto = new TitleDTO
+            {
+                TitleId = titleForm.TitleId,
+                Title1 = titleForm.Title1,
+                Type = titleForm.Type,
+                PubId = titleForm.PubId,
+                Price = titleForm.Price,
+                Advance = titleForm.Advance,
+                Royalty = titleForm.Royalty,
+                YtdSales = titleForm.YtdSales,
+                Notes = titleForm.Notes,
+                Pubdate = pubDate
+            };
+
+            if (await _titleService.UpdateTitle(id, titleDto))
+            {
+                return NoContent();
+            }
+
+            return BadRequest("An error occurred");
         }
 
         [HttpPost]
-        public async Task<ActionResult<Title>> PostTitle(Title title)
+        public async Task<ActionResult<TitleDTO>> PostTitle([FromBody] TitleForm titleForm)
         {
-            if (await _titleService.CreateTitle(title))
+            if (titleForm == null)
             {
-                return CreatedAtAction("GetTitle", new { id = title.TitleId }, title);
-            }
-            else if (_titleService.TitleExists(title.TitleId))
-            {
-                return Conflict();
+                return BadRequest("Title's data is null");
             }
 
-            return BadRequest();
+            if (_titleService.TitleExists(titleForm.TitleId))
+            {
+                return Conflict("Title with the same ID already exists");
+            }
+
+            var pubDate = new DateTime(titleForm.PubYear, titleForm.PubMonth, titleForm.PubDay);
+
+            var titleDto = new TitleDTO
+            {
+                TitleId = titleForm.TitleId,
+                Title1 = titleForm.Title1,
+                Type = titleForm.Type,
+                PubId = titleForm.PubId,
+                Price = titleForm.Price,
+                Advance = titleForm.Advance,
+                Royalty = titleForm.Royalty,
+                YtdSales = titleForm.YtdSales,
+                Notes = titleForm.Notes,
+                Pubdate = pubDate
+            };
+
+            if (await _titleService.CreateTitle(titleDto))
+            {
+                return CreatedAtAction(nameof(GetTitle), new { id = titleDto.TitleId }, titleDto);
+            }
+
+            return BadRequest("An error occurred");
         }
 
         [HttpDelete("{id}")]

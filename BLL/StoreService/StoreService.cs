@@ -1,4 +1,5 @@
-﻿using DAL.Entities;
+﻿using BLL.DTO;
+using DAL.Entities;
 using DAL.StoreRepo;
 using System;
 using System.Collections.Generic;
@@ -17,23 +18,63 @@ namespace BLL.StoreService
             _storeRepo = storeRepo;
         }
 
-        public async Task<IEnumerable<Store>> GetStores()
+        public async Task<IEnumerable<StoreDTO>> GetStores()
         {
-            return await _storeRepo.GetStores();
+            var stores = await _storeRepo.GetStores();
+            return stores.Select(store => new StoreDTO
+            {
+                StorId = store.StorId,
+                StorName = store.StorName,
+                StorAddress = store.StorAddress,
+                City = store.City,
+                State = store.State,
+                Zip = store.Zip
+            }).ToList();
         }
 
-        public async Task<Store> GetStore(string id)
+        public async Task<StoreDTO> GetStore(string id)
         {
-            return await _storeRepo.GetStore(id);
+            var store = await _storeRepo.GetStore(id);
+            if (store == null) return null; // Handle not found case
+
+            return new StoreDTO
+            {
+                StorId = store.StorId,
+                StorName = store.StorName,
+                StorAddress = store.StorAddress,
+                City = store.City,
+                State = store.State,
+                Zip = store.Zip
+            };
         }
 
-        public async Task<bool> UpdateStore(string id, Store store)
+        public async Task<bool> UpdateStore(string id, StoreDTO storeDto)
         {
-            return await _storeRepo.UpdateStore(id, store);
+            var existingStore = await _storeRepo.GetStore(id);
+            if (existingStore == null)
+            {
+                return false;
+            }
+            existingStore.StorName = storeDto.StorName;
+            existingStore.StorAddress = storeDto.StorAddress;
+            existingStore.City = storeDto.City;
+            existingStore.State = storeDto.State;
+            existingStore.Zip = storeDto.Zip;
+
+            return await _storeRepo.UpdateStore(id, existingStore);
         }
 
-        public async Task<bool> CreateStore(Store store)
+        public async Task<bool> CreateStore(StoreDTO storeDTO)
         {
+            var store = new Store
+            {
+                StorId = storeDTO.StorId,
+                StorName = storeDTO.StorName,
+                StorAddress = storeDTO.StorAddress,
+                City = storeDTO.City,
+                State = storeDTO.State,
+                Zip = storeDTO.Zip
+            };
             return await _storeRepo.CreateStore(store);
         }
 

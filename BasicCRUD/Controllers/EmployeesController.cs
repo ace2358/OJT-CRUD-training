@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using DAL;
 using DAL.Entities;
 using BLL.EmployeeService;
+using BLL.DTO;
+using BasicCRUD.InputForms.Employee;
 
 namespace BasicCRUD.Controllers
 {
@@ -24,7 +26,6 @@ namespace BasicCRUD.Controllers
             _employeeService = employeeService;
         }
 
-        // GET: api/Employees
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Employee>>> GetEmployees()
         {
@@ -44,14 +45,28 @@ namespace BasicCRUD.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutEmployee(string id, Employee employee)
+        public async Task<IActionResult> PutEmployee(string id, EmployeeForm2 employeeForm)
         {
-            if (id != employee.EmpId)
+            if (!_employeeService.EmployeeExists(id))
             {
                 return BadRequest();
             }
 
-            if (await _employeeService.UpdateEmployee(id, employee))
+            var hireDate = new DateTime(employeeForm.HireYear, employeeForm.HireMonth, employeeForm.HireDay);
+
+            var employeeDto = new EmployeeDTO
+            {
+                EmpId = id,
+                Fname = employeeForm.Fname,
+                Minit = employeeForm.Minit,
+                Lname = employeeForm.Lname,
+                JobId = employeeForm.JobId,
+                JobLvl = employeeForm.JobLvl,
+                PubId = employeeForm.PubId,
+                HireDate = hireDate
+            };
+
+            if (await _employeeService.UpdateEmployee(id, employeeDto))
             {
                 return NoContent();
             }
@@ -61,20 +76,41 @@ namespace BasicCRUD.Controllers
             }
         }
 
+
+
         [HttpPost]
-        public async Task<ActionResult<Employee>> PostEmployee(Employee employee)
+        public async Task<ActionResult<EmployeeDTO>> PostEmployee([FromBody] EmployeeForm employeeForm)
         {
-            if (await _employeeService.CreateEmployee(employee))
+            if (employeeForm == null)
             {
-                return CreatedAtAction("GetEmployee", new { id = employee.EmpId }, employee);
-            }
-            else if (_employeeService.EmployeeExists(employee.EmpId))
-            {
-                return Conflict();
+                return BadRequest("Employee's data is null");
             }
 
-            return BadRequest();
+            if (_employeeService.EmployeeExists(employeeForm.EmpId))
+            {
+                return Conflict("Employee with the same ID already exists");
+            }
+
+            var employee = new EmployeeDTO
+            {
+                EmpId = employeeForm.EmpId,
+                Fname = employeeForm.Fname,
+                Minit = employeeForm.Minit,
+                Lname = employeeForm.Lname,
+                JobId = employeeForm.JobId,
+                JobLvl = employeeForm.JobLvl,
+                PubId = employeeForm.PubId,
+                HireDate = new DateTime(employeeForm.HireYear, employeeForm.HireMonth, employeeForm.HireDay)
+            };
+
+            if (await _employeeService.CreateEmployee(employee))
+            {
+                return CreatedAtAction(nameof(GetEmployee), new { id = employee.EmpId }, employeeForm);
+            }
+
+            return BadRequest("An error occurred while creating the employee.");
         }
+
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteEmployee(string id)
